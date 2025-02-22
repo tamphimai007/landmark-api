@@ -1,7 +1,7 @@
 const prisma = require("../config/prisma");
 const { calTotal } = require("../utils/booking");
 const renderError = require("../utils/renderError");
-const stripe = require("stripe")("");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 exports.createBooking = async (req, res, next) => {
   try {
@@ -85,6 +85,7 @@ exports.checkout = async (req, res, next) => {
     // Step 2 Stripe
     const session = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
+      metadata: { bookingId: booking.id },
       line_items: [
         {
           quantity: 1,
@@ -105,6 +106,36 @@ exports.checkout = async (req, res, next) => {
 
     // console.log(total, totalNights, checkIn, checkOut, title, secure_url);
     res.send({ clientSecret: session.client_secret });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.checkOutStatus = async (req, res, next) => {
+  try {
+    // code
+    const { session_id } = req.params;
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    const bookingId = session.metadata?.bookingId;
+
+    // Check
+    if (session.status !== "complete" || !bookingId) {
+      return renderError(400, "Something Wrong!!!!");
+    }
+
+    // Update DB paymentStatus => true
+
+    const result = await prisma.booking.update({
+      where: {
+        id: Number(bookingId),
+      },
+      data: {
+        paymentStatus: true,
+      },
+    });
+
+    res.json({ message: "Payment Complete", status: session.status });
   } catch (error) {
     next(error);
   }
