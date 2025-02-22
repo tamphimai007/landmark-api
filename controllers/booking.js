@@ -1,9 +1,7 @@
 const prisma = require("../config/prisma");
 const { calTotal } = require("../utils/booking");
 const renderError = require("../utils/renderError");
-const stripe = require("stripe")(
-  "sk_test_51QCvoSCV4BDL9XJup2oCVZJSeQbNrvVM4Z3Jew0h9wJmZcw3Bhyf5x1nnF14zufoMTpjERVEua7cLV0qG8ju6wMt007aWgDHax"
-);
+const stripe = require("stripe")("");
 
 exports.createBooking = async (req, res, next) => {
   try {
