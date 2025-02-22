@@ -1,6 +1,9 @@
 const prisma = require("../config/prisma");
 const { calTotal } = require("../utils/booking");
 const renderError = require("../utils/renderError");
+const stripe = require("stripe")(
+  "sk_test_51QCvoSCV4BDL9XJup2oCVZJSeQbNrvVM4Z3Jew0h9wJmZcw3Bhyf5x1nnF14zufoMTpjERVEua7cLV0qG8ju6wMt007aWgDHax"
+);
 
 exports.createBooking = async (req, res, next) => {
   try {
@@ -54,6 +57,56 @@ exports.createBooking = async (req, res, next) => {
     // Step 6 Send id booking to react
 
     res.json({ message: "Booking Success!!", result: bookingId });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.checkout = async (req, res, next) => {
+  try {
+    const { id } = req.body;
+    // Step 1 find booking
+    const booking = await prisma.booking.findFirst({
+      where: { id: Number(id) },
+      include: {
+        landmark: {
+          select: {
+            id: true,
+            secure_url: true,
+            title: true,
+          },
+        },
+      },
+    });
+    if (!booking) {
+      return renderError(404, "Not found camping jukkru!!!");
+    }
+    const { total, totalNights, checkIn, checkOut, landmark } = booking;
+    const { title, secure_url } = landmark;
+
+    // Step 2 Stripe
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: "embedded",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "thb",
+            product_data: {
+              name: title,
+              images: [secure_url],
+              description: "ขอบใจหลายๆ จ้า ที่จองที่พักของเรา",
+            },
+            unit_amount: total * 100,
+          },
+        },
+      ],
+      mode: "payment",
+      return_url: `http://localhost:5173/user/complete/{CHECKOUT_SESSION_ID}`,
+    });
+
+    // console.log(total, totalNights, checkIn, checkOut, title, secure_url);
+    res.send({ clientSecret: session.client_secret });
   } catch (error) {
     next(error);
   }
