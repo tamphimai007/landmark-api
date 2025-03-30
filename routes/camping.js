@@ -7,14 +7,17 @@ const {
   createCamping,
   updateCamping,
   deleteCamping,
+
+  actionFavorite,
+  listFavorites
 } = require("../controllers/camping");
 
-const { authCheck } = require('../middlewares/auth')
+const { authCheck } = require("../middlewares/auth");
 
 // @ENDPOINT http://localhost:5000/api/camping
 // @METHOD GET [list camping]
 // @ACCESS Public
-router.get("/camping", listCamping);
+router.get("/campings/:id", listCamping);
 
 // @ENDPOINT http://localhost:5000/api/camping/5
 // @METHOD GET [read camping]
@@ -24,7 +27,7 @@ router.get("/camping/:id", readCamping);
 // @ENDPOINT http://localhost:5000/api/camping
 // @METHOD POST  [ create camping ]
 // @ACCESS Private
-router.post("/camping",authCheck, createCamping);
+router.post("/camping", authCheck, createCamping);
 
 // @ENDPOINT http://localhost:5000/api/camping/1
 // @METHOD PUT  [ edit camping ]
@@ -35,5 +38,9 @@ router.put("/camping/:id", updateCamping);
 // @METHOD DELETE  [ delete camping ]
 // @ACCESS Private
 router.delete("/camping/:id", deleteCamping);
+
+// Favorite Route
+router.post("/favorite", authCheck, actionFavorite);
+router.get("/favorites", authCheck, listFavorites);
 
 module.exports = router;

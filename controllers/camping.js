@@ -3,8 +3,32 @@ const prisma = require("../config/prisma");
 exports.listCamping = async (req, res, next) => {
   try {
     // code body
-    const campings = await prisma.landmark.findMany();
-    res.json({ result: campings });
+    const { id } = req.params;
+    // console.log(id);
+    const campings = await prisma.landmark.findMany({
+      include: {
+        favorites: {
+          where: { profileId: id },
+          select: { id: true },
+        },
+      },
+    });
+
+    // console.log(campings);
+    // full
+    // const campingWithLike = campings.map((item)=>{
+    //   return {
+    //     ...item,
+    //     isFavorite: item.favorites.length > 0
+    //   }
+    // })
+    // shor hand
+    const campingWithLike = campings.map((item) => ({
+      ...item,
+      isFavorite: item.favorites.length > 0,
+    }));
+    // console.log(campingWithLike)
+    res.json({ result: campingWithLike });
   } catch (error) {
     next(error);
   }
@@ -50,6 +74,7 @@ exports.createCamping = async (req, res, next) => {
       result: camping,
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
@@ -65,6 +90,67 @@ exports.updateCamping = (req, res, next) => {
 exports.deleteCamping = (req, res, next) => {
   try {
     res.send("Hello Delete");
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Favorites
+exports.actionFavorite = async (req, res, next) => {
+  try {
+    // code body
+    const { campingId, isFavorite } = req.body;
+    const { id } = req.user;
+
+    // Add or Remove
+    let result;
+    if (isFavorite) {
+      result = await prisma.favorite.deleteMany({
+        where: {
+          profileId: id,
+          landmarkId: campingId,
+        },
+      });
+    } else {
+      result = await prisma.favorite.create({
+        data: {
+          landmarkId: campingId,
+          profileId: id,
+        },
+      });
+    }
+
+    res.json({
+      message: isFavorite ? "Remove Favorite" : "Add Favorite",
+      result: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.listFavorites = async (req, res, next) => {
+  try {
+    // code body
+    const { id } = req.user;
+    const favorites = await prisma.favorite.findMany({
+      where: { profileId: id },
+      include: { landmark: true },
+    });
+
+    const favoriteWithLike = favorites.map((item) => {
+      return {
+        ...item,
+        landmark: {
+          ...item.landmark,
+          isFavorite: true,
+        },
+      };
+    });
+
+    // console.log(favoriteWithLike);
+
+    res.json({ message: "success", result: favoriteWithLike });
   } catch (error) {
     next(error);
   }
