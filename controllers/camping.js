@@ -155,3 +155,46 @@ exports.listFavorites = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.filterCamping = async (req, res, next) => {
+  try {
+    const { category, search } = req.query;
+    // console.log(category, search);
+
+    const filter = [];
+    if (category) {
+      filter.push({ category: category });
+    }
+    if (search) {
+      filter.push({ title: { contains: search } });
+    }
+
+    // OR:[
+    //   {key:value},
+    //   {key:value}
+    // ]
+    const result = await prisma.landmark.findMany({
+      where: {
+        OR: filter,
+      },
+      include: {
+        favorites: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const campingWithLike = result.map((item) => ({
+      ...item,
+      isFavorite: item.favorites.length > 0,
+    }));
+
+    // console.log(campingWithLike);
+
+    res.json({ result: campingWithLike });
+  } catch (error) {
+    next(error);
+  }
+};
