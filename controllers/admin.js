@@ -35,7 +35,9 @@ exports.listReservations = async (req, res, next) => {
 
     const totals = await prisma.booking.aggregate({
       where: {
-        profileId: id,
+        landmark: {
+          profileId: id,
+        },
       },
       _sum: {
         totalNights: true,
@@ -49,6 +51,38 @@ exports.listReservations = async (req, res, next) => {
       nights: totals._sum.totalNights,
       totals: totals._sum.total,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.listAllReservations = async (req, res, next) => {
+  try {
+    // Code body
+    const { id } = req.user;
+    const reservations = await prisma.booking.findMany({
+      where: {
+        paymentStatus: true,
+        landmark: {
+          profileId: id,
+        },
+      },
+      include: {
+        landmark: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+    console.log(reservations);
+
+    res.json({ result: reservations });
   } catch (error) {
     next(error);
   }
