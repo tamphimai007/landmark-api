@@ -87,3 +87,20 @@ exports.listAllReservations = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.listMyCampings = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const campings = await prisma.landmark.findMany({
+      where: { profileId: id },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+      },
+    });
+    res.json({ result: campings });
+  } catch (error) {
+    next(error);
+  }
+};
